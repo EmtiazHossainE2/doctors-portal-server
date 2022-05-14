@@ -31,6 +31,9 @@ async function run() {
             res.send(appointments)
         })
 
+        // Warning: This is not the proper way to query multiple collection. 
+        // After learning more about mongodb. use aggregate, lookup, pipeline, match, group
+        
         // available 
         app.get('/available', async (req, res) => {
             const date = req.query.date || "May 14, 2022"
@@ -39,16 +42,16 @@ async function run() {
             const appointments = await appointmentCollection.find().toArray()
 
             //2 get booking that day 
-            const query = {date : date};
+            const query = { date: date };
             const bookings = await bookingCollection.find(query).toArray();
 
             //3 
             appointments.forEach(appointment => {
                 const appointmentBooked = bookings.filter(b => b.treatment == appointment.name)
-                const booked =  appointmentBooked.map(a => a.slot)
+                const booked = appointmentBooked.map(a => a.slot)
                 // appointment.booked = appointmentBooked.map(a => a.slot)
                 const available = appointment.slots.filter(a => !booked.includes(a))
-                appointment.available = available
+                appointment.slots = available
             })
 
             res.send(appointments)
