@@ -24,22 +24,49 @@ async function run() {
         const bookingCollection = client.db("doctors_portal").collection("bookings");
 
         //8 load data 
-        app.get('/appointment' , async(req,res) => {
-            const query = {} 
+        app.get('/appointment', async (req, res) => {
+            const query = {}
             const cursor = appointmentCollection.find(query)
-            const appointments = await cursor.toArray() 
+            const appointments = await cursor.toArray()
+            res.send(appointments)
+        })
+
+        // available 
+        app.get('/available', async (req, res) => {
+            const date = req.query.date || "May 14, 2022"
+
+            //1 get all appointments 
+            const appointments = await appointmentCollection.find().toArray()
+
+            //2 get booking that day 
+            const query = {date : date};
+            const bookings = await bookingCollection.find(query).toArray();
+
+            //3 
+            appointments.forEach(appointment => {
+                const appointmentBooked = bookings.filter(b => b.treatment == appointment.name)
+                const booked =  appointmentBooked.map(a => a.slot)
+                // appointment.booked = appointmentBooked.map(a => a.slot)
+                const available = appointment.slots.filter(a => !booked.includes(a))
+                appointment.available = available
+            })
+
             res.send(appointments)
         })
 
         // post 
-        app.post('/booking' ,async(req,res) => {
-            const booking = req.body 
-            const result = await bookingCollection.insertOne(booking)
-            res.send(result)
+        app.post('/booking', async (req, res) => {
+            const booking = req.body
+            const query = { treatment: booking.treatment, date: booking.date, patient: booking.patient }
+            const exists = await bookingCollection.findOne(query)
+            if (exists) {
+                return res.send({ success: false, booking: exists })
+            }
+            else {
+                const result = await bookingCollection.insertOne(booking)
+                return res.send({ success: true, result });
+            }
         })
-
-
-
 
 
 
