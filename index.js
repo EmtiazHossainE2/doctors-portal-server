@@ -36,7 +36,7 @@ async function run() {
         
         // available 
         app.get('/available', async (req, res) => {
-            const date = req.query.date || "May 14, 2022"
+            const date = req.query.date 
 
             //1 get all appointments 
             const appointments = await appointmentCollection.find().toArray()
@@ -69,6 +69,14 @@ async function run() {
                 const result = await bookingCollection.insertOne(booking)
                 return res.send({ success: true, result });
             }
+        })
+
+        // get patient appointment 
+        app.get('/booking' , async(req,res) => {
+            const email = req.query?.patient
+            const query = { email: email };
+            const bookings = await bookingCollection.find(query).toArray();
+            res.send(bookings)
         })
 
 
