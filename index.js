@@ -11,10 +11,28 @@ require('dotenv').config()
 app.use(cors())
 app.use(express.json())
 
+//jwt 
+const verifyJWT = (req, res, next) => {
+    const authHeader = req.headers.authorization
+    if (!authHeader) {
+        return res.status(401).send({ message: 'Unauthorized Access' });
+    }
+    const token = authHeader.split(' ')[1];
+    jwt.verify(token, process.env.ACCESS_TOKEN, (err, decoded) => {
+        if (err) {
+            return res.status(403).send({ message: 'Forbidden Access' });
+        }
+        req.decoded = decoded;
+        next();
+    })
+}
+
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.lyeo0.mongodb.net/myFirstDatabase?retryWrites=true&w=majority`;
 
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
+
+
 
 
 async function run() {
@@ -33,27 +51,52 @@ async function run() {
             res.send(appointments)
         })
 
+        // users 
+        app.get('/user', verifyJWT, async (req, res) => {
+            const users = await userCollection.find().toArray()
+            res.send(users)
+        })
+
+        //admin 
+        app.put('/user/admin/:email', verifyJWT, async (req, res) => {
+            const email = req.params.email
+            const requester = req.decoded.email
+            const requesterAccount = await userCollection.findOne({ email: requester })
+            if (requesterAccount.role === 'admin') {
+                const filter = { email: email }
+                const updateDoc = {
+                    $set: { role: 'admin' },
+                };
+                const result = await userCollection.updateOne(filter, updateDoc)
+                res.send(result)
+            }
+            else{
+                return res.status(403).send({ message: 'Forbidden Access' });    
+            }
+
+        })
+
         //user upsert 
-        app.put('/user/:email' , async(req,res) => {
-            const email = req.params.email 
-            const filter = {email : email } 
-            const user = req.body 
+        app.put('/user/:email', async (req, res) => {
+            const email = req.params.email
+            const filter = { email: email }
+            const user = req.body
             const options = { upsert: true };
             const updateDoc = {
                 $set: user
-              };
-            const result = await userCollection.updateOne(filter , updateDoc , options)
-            const token = jwt.sign({email:email} , process.env.ACCESS_TOKEN , {expiresIn : '1h'})
-            res.send({result ,token})
+            };
+            const result = await userCollection.updateOne(filter, updateDoc, options)
+            const token = jwt.sign({ email: email }, process.env.ACCESS_TOKEN, { expiresIn: '1h' })
+            res.send({ result, token })
         })
 
 
         // Warning: This is not the proper way to query multiple collection. 
         // After learning more about mongodb. use aggregate, lookup, pipeline, match, group
-        
+
         // available 
         app.get('/available', async (req, res) => {
-            const date = req.query.date 
+            const date = req.query.date
 
             //1 get all appointments 
             const appointments = await appointmentCollection.find().toArray()
@@ -88,12 +131,19 @@ async function run() {
             }
         })
 
-        // get patient appointment 
-        app.get('/booking' , async(req,res) => {
+        // get patient appointment (my appointments)
+        app.get('/booking', verifyJWT, async (req, res) => {
             const email = req.query?.patient
-            const query = { email: email };
-            const bookings = await bookingCollection.find(query).toArray();
-            res.send(bookings)
+            const decodedEmail = req.decoded.email
+            if (email === decodedEmail) {
+                const query = { email: email };
+                const bookings = await bookingCollection.find(query).toArray();
+                res.send(bookings)
+            }
+            else {
+                return res.status(403).send({ message: 'Forbidden Access' });
+            }
+
         })
 
 
