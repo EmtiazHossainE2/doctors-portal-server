@@ -57,6 +57,15 @@ async function run() {
             res.send(users)
         })
 
+        //check admin
+        app.get('/admin/:email' , async(req,res) => {
+            const email = req.params.email 
+            const user = await userCollection.findOne({email : email})
+            const isAdmin = user.role === 'admin'
+            res.send({admin: isAdmin})
+        })
+
+
         //admin 
         app.put('/user/admin/:email', verifyJWT, async (req, res) => {
             const email = req.params.email
@@ -71,7 +80,7 @@ async function run() {
                 res.send(result)
             }
             else{
-                return res.status(403).send({ message: 'Forbidden Access' });    
+                res.status(403).send({ message: 'Forbidden Access' });    
             }
 
         })
