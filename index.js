@@ -33,8 +33,6 @@ const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
 
 
-
-
 async function run() {
     try {
         //7
@@ -189,8 +187,6 @@ async function run() {
             const result = await doctorCollection.deleteOne(filter)
             res.send(result)
         })
-
-
 
     } finally {
         //   await client.close();
