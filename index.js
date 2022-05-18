@@ -100,7 +100,7 @@ async function run() {
                 $set: user
             };
             const result = await userCollection.updateOne(filter, updateDoc, options)
-            const token = jwt.sign({ email: email }, process.env.ACCESS_TOKEN, { expiresIn: '1h' })
+            const token = jwt.sign({ email: email }, process.env.ACCESS_TOKEN, { expiresIn: '1d' })
             res.send({ result, token })
         })
 
@@ -160,9 +160,24 @@ async function run() {
         })
 
         // doctor 
+        //get all doctor 
+        app.get('/doctor' ,verifyJWT,verifyAdmin, async(req,res) => {
+            const doctors = await doctorCollection.find().toArray()
+            res.send(doctors)
+        })
+
+        // add doctor
         app.post('/doctor', verifyJWT, verifyAdmin, async (req, res) => {
             const doctor = req.body
             const result = await doctorCollection.insertOne(doctor)
+            res.send(result)
+        })
+        
+        // delete doctor
+        app.delete('/doctor/:email', verifyJWT, verifyAdmin, async (req, res) => {
+            const email = req.params.email
+            const filter = {email : email}
+            const result = await doctorCollection.deleteOne(filter)
             res.send(result)
         })
 
