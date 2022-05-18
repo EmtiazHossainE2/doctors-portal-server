@@ -70,6 +70,7 @@ async function run() {
             res.send(users)
         })
 
+        
         //check admin
         app.get('/admin/:email', async (req, res) => {
             const email = req.params.email
@@ -102,6 +103,14 @@ async function run() {
             const result = await userCollection.updateOne(filter, updateDoc, options)
             const token = jwt.sign({ email: email }, process.env.ACCESS_TOKEN, { expiresIn: '1d' })
             res.send({ result, token })
+        })
+
+        // delete user
+        app.delete('/user/:email', verifyJWT, verifyAdmin, async (req, res) => {
+            const email = req.params.email
+            const filter = {email : email}
+            const result = await userCollection.deleteOne(filter)
+            res.send(result)
         })
 
 
